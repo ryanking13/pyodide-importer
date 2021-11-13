@@ -2,6 +2,7 @@ from importlib.abc import MetaPathFinder
 from _frozen_importlib_external import PathFinder
 import sys
 import pathlib
+import warnings
 from typing import List, Any, Union
 
 PYODIDE = True
@@ -9,6 +10,7 @@ PYODIDE = True
 try:
     from js import XMLHttpRequest
 except:
+    warnings.warn("Pyodide not found, running in native mode")
     import requests
 
     PYODIDE = False
