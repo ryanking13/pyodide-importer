@@ -1,0 +1,136 @@
+from importlib.abc import MetaPathFinder
+from _frozen_importlib_external import PathFinder
+import sys
+import pathlib
+from typing import List, Any, Union
+
+PYODIDE = True
+
+try:
+    from js import XMLHttpRequest
+except:
+    import requests
+
+    PYODIDE = False
+
+
+class PyFinder(MetaPathFinder):
+    """Meta path finder for Pyodide which supports importing external Python files"""
+
+    def __init__(
+        self,
+        import_path: Union[str, List[str]] = "",
+        download_path: str = "",
+        modules: List[str] = None,
+    ):
+        self._import_path = self._prepare_import_path(import_path)
+        self._download_path = self._to_abspath(download_path)
+        self.modules = modules
+
+    def _prepare_import_path(self, paths: Union[str, List[str]]):
+        if isinstance(paths, str):
+            return [paths.rstrip("/") + "/"]
+        elif isinstance(paths, list):
+            return [path.rstrip("/") + "/" for path in paths]
+
+    def _to_abspath(self, path: str):
+        return pathlib.Path(path).resolve()
+
+    @staticmethod
+    def invalidate_caches():
+        """Call the invalidate_caches() method on all path entry finders
+        stored in sys.path_importer_caches (where implemented)."""
+        for name, finder in list(sys.path_importer_cache.items()):
+            if finder is None:
+                del sys.path_importer_cache[name]
+            elif hasattr(finder, "invalidate_caches"):
+                finder.invalidate_caches()
+
+    def find_spec(self, fullname: str, path: List[str], target: Any = None):
+        # Should find python packages according to PEP-420.
+        raise NotImplementedError
+
+
+class PyHTTPFinder(PyFinder):
+    """Meta path finder for importing python files through HTTP(s)"""
+
+    def __init__(
+        self,
+        import_path: Union[str, List[str]] = "",
+        download_path: str = "",
+        modules: List[str] = None,
+    ):
+        super().__init__(import_path, download_path, modules)
+
+    def _get(self, url: str):
+        if PYODIDE:
+            req = XMLHttpRequest.new()
+            req.open("GET", url, False)
+            req.send(None)
+            return (req.status, req.responseText)
+        else:
+            # This enables testing this module outside of Pyodide
+            resp = requests.get(url)
+            return (resp.status_code, resp.text)
+
+    def find_spec(self, fullname: str, path: List[str], target: Any = None):
+        # Search order:
+        # 1. <directory>/foo/__init__.py
+        # 2. <directory>/foo.py
+        # (-) Not supported: binary formats (pyc, pyd, so)
+        # (-) Not supported: Namespace packages without __init__.py
+
+        # module1.module2 ==> module1/module2
+        modules = fullname.split(".")
+        if modules[0] not in self.modules:
+            return None
+
+        fullname_aspath = fullname.replace(".", "/")
+
+        import_subpaths = [
+            f"{fullname_aspath}/__init__.py",  # Regular package
+            f"{fullname_aspath}.py",  # Module package
+        ]
+
+        for base_path in self.import_path:
+            for import_subpath in import_subpaths:
+                status_code, content = self._get(f"{base_path}{import_subpath}")
+                if status_code != 200:
+                    continue
+
+                package_path = self.download_path / import_subpath
+                package_path.parent.mkdir(parents=True, exist_ok=True)
+                with package_path.open("w") as f:
+                    f.write(content)
+
+                # We need to invalidate caches since PathFinder have already failed once and it is cached.
+                self.invalidate_caches()
+                return PathFinder.find_spec(fullname, path, target)
+
+        return None
+
+
+pyfinder: PyFinder = None
+
+def _update_syspath(path: str):
+    path = pathlib.Path(path).resolve().as_posix()
+    if path not in sys.path:
+        sys.path.append(path)
+
+def register_hook(
+    base_url: str,
+    download_path: str = "",
+    modules: List[str] = None,
+    update_syspath: bool = True,
+):
+    global pyfinder
+    pyfinder = PyHTTPFinder(base_url, download_path, modules)
+    sys.meta_path.append(pyfinder)
+    if update_syspath:
+        _update_syspath(download_path)
+
+def unregister_hook():
+    global pyfinder
+    if pyfinder is not None:
+        sys.meta_path.remove(pyfinder)
+        pyfinder = None
