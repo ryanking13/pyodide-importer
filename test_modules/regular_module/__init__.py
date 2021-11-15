@@ -1,4 +1,4 @@
-from .submodule2 import hello
+from .submodule2 import hello as submodule2_hello
 
 
 def hello():
