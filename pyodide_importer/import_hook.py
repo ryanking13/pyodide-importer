@@ -3,7 +3,7 @@ from _frozen_importlib_external import PathFinder
 import sys
 import pathlib
 import warnings
-from typing import List, Any, Union
+from typing import List, Any, Union, Iterable
 
 PYODIDE = True
 
@@ -23,11 +23,11 @@ class PyFinder(MetaPathFinder):
         self,
         import_path: Union[str, List[str]] = "",
         download_path: str = "",
-        modules: List[str] = None,
+        modules: Iterable[str] = None,
     ):
         self._import_path = self._prepare_import_path(import_path)
         self._download_path = self._to_abspath(download_path)
-        self.modules = modules
+        self.modules = set(modules) if module is not None else None
 
     def _prepare_import_path(self, paths: Union[str, List[str]]):
         if isinstance(paths, str):
@@ -37,6 +37,15 @@ class PyFinder(MetaPathFinder):
 
     def _to_abspath(self, path: str):
         return pathlib.Path(path).resolve()
+    
+    def add_module(self, module: Union[str, List[str]]):
+        if self.modules is None:
+            self.modules = set()
+            
+        if isinstance(module, str):
+            self.modules.add(module)
+        else:
+            self.modules.update(module)
 
     @staticmethod
     def invalidate_caches():
@@ -60,7 +69,7 @@ class PyHTTPFinder(PyFinder):
         self,
         import_path: Union[str, List[str]] = "",
         download_path: str = "",
-        modules: List[str] = None,
+        modules: Iterable[str] = None,
     ):
         super().__init__(import_path, download_path, modules)
 
@@ -130,9 +139,12 @@ def register_hook(
     sys.meta_path.append(pyfinder)
     if update_syspath:
         _update_syspath(download_path)
+    
+    return pyfinder
 
 def unregister_hook():
     global pyfinder
+
     if pyfinder is not None:
         sys.meta_path.remove(pyfinder)
         pyfinder = None
