@@ -25,9 +25,9 @@ class PyFinder(MetaPathFinder):
         download_path: str = "",
         modules: Iterable[str] = None,
     ):
-        self._import_path = self._prepare_import_path(import_path)
-        self._download_path = self._to_abspath(download_path)
-        self.modules = set(modules) if module is not None else None
+        self.import_path = self._prepare_import_path(import_path)
+        self.download_path = self._to_abspath(download_path)
+        self.modules = set(modules) if modules is not None else None
 
     def _prepare_import_path(self, paths: Union[str, List[str]]):
         if isinstance(paths, str):
@@ -41,7 +41,7 @@ class PyFinder(MetaPathFinder):
     def add_module(self, module: Union[str, List[str]]):
         if self.modules is None:
             self.modules = set()
-            
+
         if isinstance(module, str):
             self.modules.add(module)
         else:
@@ -93,7 +93,7 @@ class PyHTTPFinder(PyFinder):
 
         # module1.module2 ==> module1/module2
         modules = fullname.split(".")
-        if modules[0] not in self.modules:
+        if self.modules is not None and modules[0] not in self.modules:
             return None
 
         fullname_aspath = fullname.replace(".", "/")
