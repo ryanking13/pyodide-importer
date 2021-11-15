@@ -37,7 +37,7 @@ class PyFinder(MetaPathFinder):
 
     def _to_abspath(self, path: str):
         return pathlib.Path(path).resolve()
-    
+
     def add_module(self, module: Union[str, List[str]]):
         if self.modules is None:
             self.modules = set()
@@ -123,10 +123,12 @@ class PyHTTPFinder(PyFinder):
 
 pyfinder: PyFinder = None
 
+
 def _update_syspath(path: str):
     path = pathlib.Path(path).resolve().as_posix()
     if path not in sys.path:
         sys.path.append(path)
+
 
 def register_hook(
     base_url: str,
@@ -139,8 +141,9 @@ def register_hook(
     sys.meta_path.append(pyfinder)
     if update_syspath:
         _update_syspath(download_path)
-    
+
     return pyfinder
+
 
 def unregister_hook():
     global pyfinder

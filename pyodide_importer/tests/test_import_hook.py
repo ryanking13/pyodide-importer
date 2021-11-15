@@ -3,9 +3,12 @@ import sys
 
 import pytest
 
-import pyodide_importer 
+import pyodide_importer
 
-TEST_MODULE_URL = "https://raw.githubusercontent.com/ryanking13/pyodide-importer/main/test_modules/"
+TEST_MODULE_URL = (
+    "https://raw.githubusercontent.com/ryanking13/pyodide-importer/main/test_modules/"
+)
+
 
 @pytest.fixture(scope="function")
 def hook():
@@ -29,7 +32,7 @@ def cleanup_imports():
     for module in sys.modules:
         if module.startswith(("file_module", "regular_module")):
             cleanup_targets.append(module)
-    
+
     for module in cleanup_targets:
         sys.modules.pop(module)
 
@@ -38,6 +41,7 @@ def test_file_module(hook):
     expected_response = "hello from file_module"
 
     import file_module
+
     assert file_module.hello() == expected_response
 
 
@@ -45,20 +49,23 @@ def test_regular_module_init(hook):
     expected_response = "hello from regular_module"
 
     import regular_module
+
     assert regular_module.hello() == expected_response
 
 
 def test_regular_module_submodule(hook):
     expected_response = "hello from regular_module.submodule"
-    
+
     import regular_module.submodule
+
     assert regular_module.submodule.hello() == expected_response
 
 
 def test_regular_module_submodule2(hook):
     expected_response = "hello from regular_module.submodule2"
-    
+
     import regular_module
+
     assert regular_module.submodule2_hello() == expected_response
 
 
@@ -66,6 +73,7 @@ def test_module_whitelist(hook):
     hook.add_module("file_module")
 
     import file_module
+
     with pytest.raises(ModuleNotFoundError):
         import regular_module
 
