@@ -1,11 +1,9 @@
 name: Publish package
 
 on:
-  push:
-    branches:
-      - main
+  create:
     tags:
-      - "*"
+      - v*
 
 jobs:
   build:
