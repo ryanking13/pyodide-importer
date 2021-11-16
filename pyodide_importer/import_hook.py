@@ -5,6 +5,8 @@ import pathlib
 import warnings
 from typing import List, Any, Union, Iterable
 
+pyfinder: PyFinder = None
+
 PYODIDE = True
 
 try:
@@ -29,6 +31,14 @@ class PyFinder(MetaPathFinder):
         self.download_path = self._to_abspath(download_path)
         self.modules = set(modules) if modules is not None else None
 
+    def register(self):
+        if self not in sys.meta_path:
+            sys.meta_path.append(self)
+    
+    def unregister(self):
+        if self in sys.meta_path:
+            sys.meta_path.remove(self)
+
     def _prepare_import_path(self, paths: Union[str, List[str]]):
         if isinstance(paths, str):
             return [paths.rstrip("/") + "/"]
@@ -37,6 +47,16 @@ class PyFinder(MetaPathFinder):
 
     def _to_abspath(self, path: str):
         return pathlib.Path(path).resolve()
+    
+    def __enter__(self):
+        self.register()
+
+    def __exit__(self, type, value, traceback):
+        global pyfinder
+        self.unregister()
+
+        if pyfinder is not None:
+            pyfinder = None
 
     def add_module(self, module: Union[str, List[str]]):
         if self.modules is None:
@@ -121,9 +141,6 @@ class PyHTTPFinder(PyFinder):
         return None
 
 
-pyfinder: PyFinder = None
-
-
 def _update_syspath(path: str):
     path = pathlib.Path(path).resolve().as_posix()
     if path not in sys.path:
@@ -142,7 +159,7 @@ def register_hook(
             "import hook is already registered, if you want to register a new hook, unregister the existing hook with unregister_hook() first"
         )
     pyfinder = PyHTTPFinder(base_url, download_path, modules)
-    sys.meta_path.append(pyfinder)
+    pyfinder.register()
     if update_syspath:
         _update_syspath(download_path)
 
@@ -153,5 +170,5 @@ def unregister_hook():
     global pyfinder
 
     if pyfinder is not None:
-        sys.meta_path.remove(pyfinder)
+        pyfinder.unregister()
         pyfinder = None
