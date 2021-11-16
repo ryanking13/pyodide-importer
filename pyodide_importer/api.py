@@ -9,6 +9,9 @@ pyfinder: PyFinder = None
 
 
 def _update_syspath(path: str):
+    """
+    Append `path` to sys.path so that files in path can be imported
+    """
     path = pathlib.Path(path).resolve().as_posix()
     if path not in sys.path:
         sys.path.append(path)
@@ -20,6 +23,9 @@ def register_hook(
     modules: List[str] = None,
     update_syspath: bool = True,
 ):
+    """
+    Register PyFinder import hook to sys.meta_path
+    """
     global pyfinder
     if pyfinder is not None and pyfinder._registered():
         raise RuntimeError(
@@ -35,6 +41,9 @@ def register_hook(
 
 
 def unregister_hook():
+    """
+    Unregister PyFinder import hook from sys.meta_path
+    """
     global pyfinder
 
     if pyfinder is not None:
@@ -43,6 +52,9 @@ def unregister_hook():
 
 
 def add_module(module: Union[str, List[str]]):
+    """
+    Add new module(s) to the whitelist which PyFinder import hook can import
+    """
     global pyfinder
 
     if pyfinder is None or (not pyfinder._registered()):
@@ -52,6 +64,9 @@ def add_module(module: Union[str, List[str]]):
 
 
 def available_modules():
+    """
+    Get the list of whitelisted modules which PyFinder import hook can import
+    """
     global pyfinder
     if pyfinder is None or (not pyfinder._registered()):
         raise RuntimeError("import hook is not registered")

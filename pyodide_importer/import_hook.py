@@ -30,14 +30,23 @@ class PyFinder(MetaPathFinder):
         self.modules = set(modules) if modules is not None else None
 
     def register(self):
+        """
+        Register the PyFinder to sys.meta_path
+        """
         if not self._registered():
             sys.meta_path.append(self)
 
     def unregister(self):
+        """
+        Unregister the PyFinder from sys.meta_path
+        """
         if self._registered():
             sys.meta_path.remove(self)
 
     def _registered(self):
+        """
+        Check whether the PyFinder is registered in sys.meta_path
+        """
         return self in sys.meta_path
 
     def __enter__(self):
@@ -56,6 +65,9 @@ class PyFinder(MetaPathFinder):
         return pathlib.Path(path).resolve()
 
     def add_module(self, module: Union[str, List[str]]):
+        """
+        Add new module(s) to the whitelist which PyFinder import hook can import
+        """
         if self.modules is None:
             self.modules = set()
 
@@ -65,6 +77,9 @@ class PyFinder(MetaPathFinder):
             self.modules.update(module)
 
     def available_modules(self):
+        """
+        Get the list of whitelisted modules which PyFinder import hook can import
+        """
         return self.modules
 
     @staticmethod
@@ -94,6 +109,9 @@ class PyHTTPFinder(PyFinder):
         super().__init__(import_path, download_path, modules)
 
     def _get(self, url: str):
+        """
+        Download python script through HTTP(s)
+        """
         if PYODIDE:
             req = XMLHttpRequest.new()
             req.open("GET", url, False)
