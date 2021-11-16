@@ -5,8 +5,6 @@ import pathlib
 import warnings
 from typing import List, Any, Union, Iterable
 
-pyfinder: PyFinder = None
-
 PYODIDE = True
 
 try:
@@ -32,12 +30,21 @@ class PyFinder(MetaPathFinder):
         self.modules = set(modules) if modules is not None else None
 
     def register(self):
-        if self not in sys.meta_path:
+        if not self._registered():
             sys.meta_path.append(self)
-    
+
     def unregister(self):
-        if self in sys.meta_path:
+        if self._registered():
             sys.meta_path.remove(self)
+
+    def _registered(self):
+        return self in sys.meta_path
+
+    def __enter__(self):
+        self.register()
+
+    def __exit__(self, type, value, traceback):
+        self.unregister()
 
     def _prepare_import_path(self, paths: Union[str, List[str]]):
         if isinstance(paths, str):
@@ -47,16 +54,6 @@ class PyFinder(MetaPathFinder):
 
     def _to_abspath(self, path: str):
         return pathlib.Path(path).resolve()
-    
-    def __enter__(self):
-        self.register()
-
-    def __exit__(self, type, value, traceback):
-        global pyfinder
-        self.unregister()
-
-        if pyfinder is not None:
-            pyfinder = None
 
     def add_module(self, module: Union[str, List[str]]):
         if self.modules is None:
@@ -66,6 +63,9 @@ class PyFinder(MetaPathFinder):
             self.modules.add(module)
         else:
             self.modules.update(module)
+
+    def available_modules(self):
+        return self.modules
 
     @staticmethod
     def invalidate_caches():
@@ -139,36 +139,3 @@ class PyHTTPFinder(PyFinder):
                 return PathFinder.find_spec(fullname, path, target)
 
         return None
-
-
-def _update_syspath(path: str):
-    path = pathlib.Path(path).resolve().as_posix()
-    if path not in sys.path:
-        sys.path.append(path)
-
-
-def register_hook(
-    base_url: str,
-    download_path: str = "",
-    modules: List[str] = None,
-    update_syspath: bool = True,
-):
-    global pyfinder
-    if pyfinder is not None:
-        raise RuntimeError(
-            "import hook is already registered, if you want to register a new hook, unregister the existing hook with unregister_hook() first"
-        )
-    pyfinder = PyHTTPFinder(base_url, download_path, modules)
-    pyfinder.register()
-    if update_syspath:
-        _update_syspath(download_path)
-
-    return pyfinder
-
-
-def unregister_hook():
-    global pyfinder
-
-    if pyfinder is not None:
-        pyfinder.unregister()
-        pyfinder = None
