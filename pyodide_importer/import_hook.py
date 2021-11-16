@@ -137,6 +137,10 @@ def register_hook(
     update_syspath: bool = True,
 ):
     global pyfinder
+    if pyfinder is not None:
+        raise RuntimeError(
+            "import hook is already registered, if you want to register a new hook, unregister the existing hook with unregister_hook() first"
+        )
     pyfinder = PyHTTPFinder(base_url, download_path, modules)
     sys.meta_path.append(pyfinder)
     if update_syspath:
