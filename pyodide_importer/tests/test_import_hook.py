@@ -102,6 +102,6 @@ def test_available_modules(hook):
 def test_contextmanager(hook):
     with hook:
         import file_module
-    
+
     with pytest.raises(ModuleNotFoundError):
         import regular_module
