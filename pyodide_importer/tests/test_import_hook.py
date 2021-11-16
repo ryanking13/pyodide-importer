@@ -18,7 +18,9 @@ def hook():
         download_path=tempdir.name,
         update_syspath=True,
     )
+
     yield pyfinder
+
     pyodide_importer.unregister_hook()
     tempdir.cleanup()
 
@@ -70,7 +72,7 @@ def test_regular_module_submodule2(hook):
 
 
 def test_module_whitelist(hook):
-    hook.add_module("file_module")
+    pyodide_importer.add_module("file_module")
 
     import file_module
 
@@ -87,3 +89,19 @@ def test_unregister_hook(hook):
     pyodide_importer.unregister_hook()
     with pytest.raises(ModuleNotFoundError):
         import file_module
+
+
+def test_available_modules(hook):
+    hook.add_module(["module1", "module2"])
+
+    modules = hook.available_modules()
+    assert "module1" in modules
+    assert "notamodule" not in modules
+
+
+def test_contextmanager(hook):
+    with hook:
+        import file_module
+    
+    with pytest.raises(ModuleNotFoundError):
+        import regular_module
