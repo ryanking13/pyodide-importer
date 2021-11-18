@@ -1,4 +1,4 @@
-name: Test core functionalities
+name: Test core
 
 on:
   push:
