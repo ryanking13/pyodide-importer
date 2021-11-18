@@ -18,13 +18,19 @@ def _update_syspath(path: str):
 
 
 def register_hook(
-    base_url: str,
+    base_url: Union[str, List[str]],
     download_path: str = "",
     modules: List[str] = None,
     update_syspath: bool = True,
 ):
     """
-    Register PyFinder import hook to sys.meta_path
+    Register import hook to sys.meta_path.
+
+    Args:
+        base_url (str or List[str]): URL(s) where the directory containing Python packages is served through HTTP/S
+        download_path (str): the path where Python packages will be downloaded, default is current working directory
+        modules (List[str]): a list, with the names of the modules/packages that can be imported from the given URL
+        update_syspath (bool): whether to add `download_path` to `sys.path`
     """
     global pyfinder
     if pyfinder is not None and pyfinder._registered():
@@ -42,7 +48,10 @@ def register_hook(
 
 def unregister_hook():
     """
-    Unregister PyFinder import hook from sys.meta_path
+    Unregister import hook from sys.meta_path.
+
+    After calling this method, new external modules cannot be downloaded and imported,
+    while previously imported modules can be keep available.
     """
     global pyfinder
 
@@ -53,7 +62,10 @@ def unregister_hook():
 
 def add_module(module: Union[str, List[str]]):
     """
-    Add new module(s) to the whitelist which PyFinder import hook can import
+    Add new module(s) that can be imported from URL.
+
+    Args:
+        module (str or List[str]): modules/packages that can be imported from the URL
     """
     global pyfinder
 
@@ -65,7 +77,7 @@ def add_module(module: Union[str, List[str]]):
 
 def available_modules():
     """
-    Get the list of whitelisted modules which PyFinder import hook can import
+    Get the list of modules that can be imported from the URL.
     """
     global pyfinder
     if pyfinder is None or (not pyfinder._registered()):
