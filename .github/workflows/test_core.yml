@@ -1,4 +1,4 @@
-name: Test core
+name: core
 
 on:
   push:
@@ -20,25 +20,39 @@ jobs:
           options: "--check --verbose"
           src: "./pyodide_importer"
 
-  check:
+  build:
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: [3.9]
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup Python ${{ matrix.python-version }}
+      - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install '.'
+
+  test-core:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install '.[test]'
+          playwright install
 
       - name: Run tests
         run: |
