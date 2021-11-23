@@ -3,6 +3,7 @@ import sys
 
 import pytest
 
+import pyodide_importer
 from . import TEST_MODULE_URL
 
 
