@@ -3,11 +3,7 @@ import sys
 
 import pytest
 
-import pyodide_importer
-
-TEST_MODULE_URL = (
-    "https://raw.githubusercontent.com/ryanking13/pyodide-importer/main/test_modules/"
-)
+from . import TEST_MODULE_URL
 
 
 @pytest.fixture(scope="function")
